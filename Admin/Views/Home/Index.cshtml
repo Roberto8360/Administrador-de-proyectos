@@ -1,0 +1,241 @@
+﻿@{
+	ViewData["Title"] = "Home Page";
+}
+
+<div class="container mt-4">
+	<h2 class="mb-4">Home</h2>
+
+	<!-- Botón "Agregar Proyecto" -->
+	<button id="btnAgregarProyecto" class="btn btn-success mb-3">Agregar Proyecto</button>
+
+	<!-- Modal para agregar proyecto -->
+	<div class="modal fade" id="agregarProyectoModal" tabindex="-1" aria-labelledby="agregarProyectoLabel" aria-hidden="true">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<form action="Home/Create" method="post">
+					<div class="modal-header">
+						<h5 class="modal-title" id="agregarProyectoLabel">Agregar Proyecto</h5>
+						<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+					</div>
+					<div class="modal-body">
+						<div class="mb-3">
+							<label for="Nombre" class="form-label">Nombre del Proyecto</label>
+							<input type="text" class="form-control" id="Nombre" name="Nombre" required />
+						</div>
+						<div class="mb-3">
+							<label for="Empresa" class="form-label">Empresa</label>
+							<input type="text" class="form-control" id="Empresa" name="Empresa" required />
+						</div>
+					</div>
+					<div class="modal-footer">
+						<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+						<button type="submit" class="btn btn-primary">Guardar</button>
+					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+
+	<!-- Modal para editar proyecto -->
+	<div class="modal" id="editarProyectoModal" tabindex="-1" aria-labelledby="editarProyectoLabel" aria-hidden="true">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<form >
+					<input type="hidden" id="ProyectoId" name="Id" />
+					<div class="modal-header">
+						<h5 class="modal-title" id="editarProyectoLabel">Editar Proyecto</h5>
+						<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+					</div>
+					<div class="modal-body">
+						<div class="mb-3">
+							<label for="Nombre" class="form-label">Nombre del Proyecto</label>
+							<input type="text" class="form-control" id="NombreParaEditarProyecto" name="Nombre" required />
+						</div>
+						<div class="mb-3">
+							<label for="Empresa" class="form-label">Empresa</label>
+							<input type="text" class="form-control" id="empresa" name="Empresa" min="1" required />
+						</div>
+					</div>
+					<div class="modal-footer">
+						<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+						<button type="button" id="btnActualizar" class="btn btn-primary">Guardar</button>
+					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+
+	<div class="table-responsive">
+		<table id="projectsTable" class="table table-bordered table-hover table-striped align-middle">
+			<thead>
+				<tr>
+					<th>Nombre del Proyecto</th>
+					<th>Empresa</th>
+					<th>Acciones</th>
+				</tr>
+			</thead>
+			<tbody></tbody>
+		</table>
+	</div>
+
+
+</div>
+
+<script>
+	//Abrir Modal Agregar proyecto
+	document.addEventListener('DOMContentLoaded', function () {
+
+		$('#projectsTable').DataTable({
+			language: {
+				search: "Buscar:",
+				lengthMenu: "Mostrar _MENU_ registros por página",
+				zeroRecords: "No se encontraron resultados",
+				info: "Mostrando _START_ a _END_ de _TOTAL_ entradas",
+				infoEmpty: "No hay datos disponibles",
+				paginate: {
+					first: "Primero",
+					last: "Último",
+					next: "Siguiente",
+					previous: "Anterior"
+				}
+			}
+		});
+
+		cargarProyectos();
+		const btn = document.getElementById('btnAgregarProyecto');
+
+		const modal = new bootstrap.Modal(document.getElementById('agregarProyectoModal'));
+
+		btn.addEventListener('click', function () {
+			modal.show();
+		});
+
+			// Abrir modal Editar proyectos
+			  $(document).on('click', '.editar-btn', function() {
+				 const id = $(this).data('id');
+				 const nombre = $(this).data('nombre');
+				 const empresa = $(this).data('empresa');
+
+				 $('#ProyectoId').val(id);
+				 $('#NombreParaEditarProyecto').val(nombre);
+				 $('#empresa').val(empresa);
+
+			     const modal = new bootstrap.Modal(document.getElementById('editarProyectoModal'));
+
+			     modal.show();
+
+			  });
+
+			 // Acualizar proyecto
+			  $('#btnActualizar').click(function(){
+
+				   const id = $('#ProyectoId').val();
+				   const nombre = $('#NombreParaEditarProyecto').val();
+				   const empresa = $('#empresa').val();
+
+					 $.ajax({
+						url: "/Home/ActualizarProyecto",
+						type: "POST",
+						data: { id: id, nombre: nombre, empresa: empresa},
+						success: function(response){
+							if(response.success === true){
+								$('#editarProyectoModal').modal('hide');
+								cargarProyectos();
+							} else {
+								alert("Error al guardar los datos.");
+							}
+						},
+
+					 });
+
+				});
+
+				// Eliminar proyecto
+			    $(document).on('click', '.eliminar-btn', function(){
+
+		          const id = $(this).data('id');
+
+		          if(confirm("¿Estás seguro de eliminar este proyecto?")){
+			          $.ajax({
+				        url: "/Home/EliminarProyecto",
+				        type: "POST",
+				        data: { id: id },
+				        success: function(response){
+					       if(response.success === true){
+								cargarProyectos();
+					       } else {
+								alert("Error al eliminar proyecto.");
+					       }
+				      }
+			          });
+		          }
+
+	            });
+
+
+				// Evento boton "Ver Reporte"
+				$(document).on('click', '.reporte-btn', function () {
+					var id = $(this).data('id');
+					window.location.href = '/Reporte/Index?id=' + id;
+	            });
+
+				// Evento boton "Administrar modulos"
+				$(document).on('click', '.administrarmodulo-btn', function () {
+					var id = $(this).data('id');
+					window.location.href = '/Modulo/Index?id=' + id;
+				});
+
+
+	}); // Termina evento document.ready
+
+	// Llenado de tabla proyectos en Home
+		function cargarProyectos() {
+		// Verifica si DataTable ya está inicializado
+		var tabla = $('#projectsTable').DataTable();
+
+		$.ajax({
+			url: "Home/ObtenerProyectos",
+			type: 'GET',
+			success: function (data) {
+				// Limpia la tabla DataTables
+				tabla.clear();
+
+				// Agrega filas nuevas
+				$.each(data, function (i, proyecto) {
+					tabla.row.add([
+						proyecto.nombre,
+						proyecto.empresa,
+						`<button class="btn btn-sm btn-outline-primary editar-btn me-1" title="Editar"
+							data-id="${proyecto.id}" data-nombre="${proyecto.nombre}" data-empresa="${proyecto.empresa}">
+							<i class="fas fa-edit"></i>
+						</button>
+
+						<button class="btn btn-sm btn-outline-info administrarmodulo-btn me-1" title="Administrar módulos"
+							data-id="${proyecto.id}" data-proyecto="${proyecto.nombre}">
+							<i class="fas fa-puzzle-piece"></i>
+						</button>
+
+						<button class="btn btn-sm btn-outline-secondary reporte-btn me-1" title="Ver Reporte"
+							data-id="${proyecto.id}">
+							<i class="fas fa-chart-bar"></i>
+						</button>
+
+						<button class="btn btn-sm btn-outline-danger eliminar-btn" title="Eliminar"
+							data-id="${proyecto.id}">
+							<i class="fas fa-trash-alt"></i>
+						</button>`
+					]);
+				});
+
+				// Dibuja la tabla con las filas nuevas
+				tabla.draw();
+			},
+			error: function () {
+				alert("Error al obtener productos.");
+			}
+		 });
+	}
+
+</script>
+
+

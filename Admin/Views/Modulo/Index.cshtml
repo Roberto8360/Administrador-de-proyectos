@@ -1,0 +1,259 @@
+﻿@{
+	ViewData["Title"] = "Modulo";
+}
+
+<div class="container mt-4">
+	<h2 class="mb-4">Administrar Módulos</h2>
+</div>
+
+<!-- Botón "Agregar Proyecto" -->
+<button id="btnAgregarModulo" class="btn btn-success mb-3">Agregar Modulo</button>
+
+<!-- Modal para agregar modulo -->
+<div class="modal" id="moduloModal" tabindex="-1" aria-labelledby="agregarModuloLabel" aria-hidden="true">
+	<div class="modal-dialog">
+		<div class="modal-content">
+			<form id="formAgregarModulo">
+				<input type="hidden" id="proyectoIdParaAgregarModulo" name="proyectoId" />
+				<div class="modal-header">
+					<h5 class="modal-title" id="agregarModulo">Agregar Modulo</h5>
+					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+				</div>
+				<div class="modal-body">
+					<div class="mb-3">
+						<label for="Modulo" class="form-label">Nombre del Modulo</label>
+						<input type="text" class="form-control" id="nombre" name="nombre" required />
+					</div>
+					<div class="mb-3">
+						<label for="Horas" class="form-label">Duración (horas)</label>
+						<input type="number" class="form-control" id="horas" name="horas" min="1" required />
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+					<button type="submit" class="btn btn-primary">Guardar</button>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
+
+<!-- Modal para editar Modulo -->
+<div class="modal" id="editarModuloModal" tabindex="-1" aria-labelledby="editarModuloLabel" aria-hidden="true">
+	<div class="modal-dialog">
+		<div class="modal-content">
+			<form id="formEditarModulo">
+				<input type="hidden" id="moduloIdParaEditarModulo" name="Id" />
+				<div class="modal-header">
+					<h5 class="modal-title" id="editarModeloLabel">Editar Módulo</h5>
+					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+				</div>
+				<div class="modal-body">
+					<div class="mb-3">
+						<label for="Nombre" class="form-label">Modulo</label>
+						<input type="text" class="form-control" id="NombreParaEditarModulo" name="NombreDeModulo" required />
+					</div>
+					<div class="mb-3">
+						<label for="Empresa" class="form-label">Empresa</label>
+						<input type="number" class="form-control" id="HorasParaEditarModulo" name="HorasDeModulo" min="1" required />
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+					<button type="submit" id="btnActualizar" class="btn btn-primary">Guardar</button>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
+
+<div class="table-responsive">
+	<table id="tablaModulosDeProyecto" class="table table-bordered table-hover table-striped align-middle">
+		<thead>
+			<tr>
+				<th>Módulos</th>
+				<th>Horas</th>
+				<th>Acciones</th>
+			</tr>
+		</thead>
+		<tbody></tbody>
+	</table>
+</div>
+
+
+<script>
+
+	let proyectoId = null;
+	let tablaModulos;
+
+	// Obtener ID de la URL y cargar tabla
+	document.addEventListener('DOMContentLoaded', function () {
+		const params = new URLSearchParams(window.location.search);
+		proyectoId = parseInt(params.get('id'), 10);
+
+		if (!isNaN(proyectoId)) {
+			cargarModulosdeProyecto(proyectoId);
+		}else {
+			 console.error("ID de proyecto no válido en la URL");
+		}
+
+		// Abrir modal "Agregar módulo""
+		$('#btnAgregarModulo').on('click', function () {
+				$('#proyectoIdParaAgregarModulo').val(proyectoId);
+
+				$('#nombre').val('');
+				$('#horas').val('');
+
+				const modal = new bootstrap.Modal(document.getElementById('moduloModal'));
+				modal.show();
+			});
+
+		// Agregar modulo a proyecto
+		$('#formAgregarModulo').on('submit', function (e) {
+				e.preventDefault();
+
+				const data = {
+					proyectoId: proyectoId,
+					nombre: $('#nombre').val(),
+					horas: $('#horas').val()
+				};
+
+				$.ajax({
+					type: 'POST',
+					url: '/Modulo/AgregarModulo',
+					data: data,
+					success: function (response) {
+						if (response.success) {
+							$('#moduloModal').modal('hide');
+							cargarModulosdeProyecto(proyectoId);
+						} else {
+							alert("Error: " + response.message);
+						}
+					},
+					error: function () {
+						alert("Ocurrió un error al enviar los datos.");
+					}
+				});
+			});
+
+		// Eliminar módulo
+		$(document).on('click', '.eliminar-btn', function(){
+
+			const moduloId  = $(this).data('id');
+
+				 if(confirm("¿Estás seguro de eliminar este módulo?")){
+					$.ajax({
+						url: "/Modulo/EliminarModulo",
+						type: "POST",
+						data: { id: moduloId },
+						success: function(response){
+						   if(response.success === true){
+								cargarModulosdeProyecto(proyectoId);
+						   } else {
+								alert("Error al eliminar proyecto.");
+						   }
+						}
+					});
+			 }
+
+		});
+
+		// Abrir modal "Editar módulo"
+		 $(document).on('click', '.editar-btn', function() {
+			const id = $(this).data('id');
+			const nombre = $(this).data('nombre');
+			const horas = $(this).data('horas');
+
+			$('#moduloIdParaEditarModulo').val(id);
+			$('#NombreParaEditarModulo').val(nombre);
+			$('#HorasParaEditarModulo').val(horas);
+
+			const modal = new bootstrap.Modal(document.getElementById('editarModuloModal'));
+
+			modal.show();
+
+		 });
+
+		 // Acualizar Módulo
+		 $('#formEditarModulo').on('submit', function (e) {
+				e.preventDefault();
+
+				const data = {
+					id: $('#moduloIdParaEditarModulo').val(),
+					nombre: $('#NombreParaEditarModulo').val(),
+					horas: $('#HorasParaEditarModulo').val()
+				};
+
+				$.ajax({
+					type: 'POST',
+					url: '/Modulo/ActualizarModulo',
+					data: data,
+					success: function (response) {
+						if (response.success) {
+							$('#editarModuloModal').modal('hide');
+							cargarModulosdeProyecto(proyectoId);
+						} else {
+							alert("Error: " + response.message);
+						}
+					},
+					error: function () {
+						alert("Ocurrió un error al enviar los datos.");
+					}
+				});
+		 });
+
+	});
+
+	function cargarModulosdeProyecto(id) {
+		$.ajax({
+			url: "/Modulo/CargarModulosdeProyecto",
+			type: 'GET',
+			data: { id: id },
+			success: function (data) {
+
+				// Si la tabla ya fue inicializada, la limpiamos y recargamos los datos
+				if ($.fn.DataTable.isDataTable("#tablaModulosDeProyecto")) {
+					tablaModulos.clear();
+					tablaModulos.rows.add(data.modulos);
+					tablaModulos.draw();
+				} else {
+					// Inicializamos el DataTable por primera vez
+					tablaModulos = $("#tablaModulosDeProyecto").DataTable({
+						data: data.modulos,
+						columns: [
+							{ data: "nombre", title: "Módulos" },
+							{ data: "horas", title: "Horas" },
+							{
+								data: null,
+								title: "Acciones",
+								orderable: false,
+								render: function (data, type, row) {
+									return `
+										<button class="btn btn-sm btn-primary editar-btn"
+											data-id="${row.id}"
+											data-nombre="${row.nombre}"
+											data-horas="${row.horas}">
+											Editar
+										</button>
+										<button class="btn btn-sm btn-danger eliminar-btn"
+											data-id="${row.id}">
+											Eliminar
+										</button>
+									`;
+								}
+							}
+						],
+						language: {
+							url: "//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json"
+						},
+						responsive: true
+					});
+				}
+			},
+			error: function () {
+				alert("Error al obtener módulos.");
+			}
+		});
+	}
+
+</script>

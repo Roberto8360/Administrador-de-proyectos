@@ -1,0 +1,117 @@
+﻿@{
+    ViewData["Title"] = "Index";
+}
+
+<style>
+
+</style>
+
+@* Acordeon de proyectos *@
+<div class="accordion accordion-flush" id="accordionFlushExample">
+    <h2 class="nombre de tabla">Proyectos</h2>
+    <button id="btnAgregarProyecto" class="btn btn-success mb-3">Agregar Proyecto</button>
+    <div class="accordion-item">
+    
+    </div>
+
+</div> 
+
+
+<script>
+
+    // Esto se va a ejecutar tan pronto se termine de cargar el DOM
+       document.addEventListener('DOMContentLoaded', function () {
+        fetch('/Proyecto/ObtenerProyectosActivos')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Error en la respuesta del servidor.");
+                }
+                return response.json();
+            })
+            .then(data => {
+                const container = document.getElementById('accordionFlushExample');
+
+                if (data.length === 0) {
+                    container.innerHTML = `
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="flush-heading-no-data">
+                                <button class="accordion-button collapsed" type="button"
+                                        data-bs-toggle="collapse" data-bs-target="#flush-collapse-no-data"
+                                        aria-expanded="false" aria-controls="flush-collapse-no-data">
+                                    No hay proyectos cargados
+                                </button>
+                            </h2>
+                            <div id="flush-collapse-no-data" class="accordion-collapse collapse"
+                                 aria-labelledby="flush-heading-no-data" data-bs-parent="#accordionFlushExample">
+                                <div class="accordion-body">
+                                    No hay proyectos activos disponibles en este momento.
+                                </div>
+                            </div>
+                        </div>`;
+                    return;
+                }
+
+                data.forEach((proyecto, index) => {
+                    const headingId = `flush-heading-${index}`;
+                    const collapseId = `flush-collapse-${index}`;
+
+                    let totalHoras = 0;
+                    let modulosHtml = '';
+
+                    if (proyecto.modulos.length > 0) {
+                        proyecto.modulos.forEach(modulo => {
+                            totalHoras += modulo.horas;
+                            modulosHtml += `
+                                <li>
+                                    ${modulo.nombre ?? 'Sin nombre'} - <strong>${modulo.horas} h</strong>
+                                </li>`;
+                        });
+                    } else {
+                        modulosHtml = `<li>No hay módulos asignados</li>`;
+                    }
+
+                    const item = `
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="${headingId}">
+                                      <button class="accordion-button collapsed d-flex justify-content-between align-items-center" type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#${collapseId}"
+            aria-expanded="false"
+            aria-controls="${collapseId}">
+        <span>
+            ${proyecto.nombre} (${totalHoras} ${totalHoras === 1 ? 'hora' : 'horas'})
+        </span>
+        <span class="ms-auto btn-group" style="margin-left: auto;">
+            <button class="btn btn-sm btn-outline-primary me-1" title="Editar" onclick="editarProyecto(${proyecto.id})">
+                <i class="bi bi-pencil-square"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-danger me-1" title="Eliminar" onclick="eliminarProyecto(${proyecto.id})">
+                <i class="bi bi-trash"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-success" title="Agregar Módulo" onclick="agregarModulo(${proyecto.id})">
+                <i class="bi bi-plus-circle"></i>
+            </button>
+        </span>
+    </button>
+                            </h2>
+                            <div id="${collapseId}" class="accordion-collapse collapse"
+                                 aria-labelledby="${headingId}" data-bs-parent="#accordionFlushExample">
+                                <div class="accordion-body">
+                                    <ul>${modulosHtml}</ul>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    container.insertAdjacentHTML('beforeend', item);
+                });
+            })
+            .catch(error => {
+                console.error(error);
+                document.getElementById('mensaje-error').innerText = 'Ocurrió un error al cargar los proyectos.';
+            });
+    });
+
+
+   
+
+</script>
